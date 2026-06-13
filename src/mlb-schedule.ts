@@ -35,29 +35,33 @@ function teamsFromSlug(slug: string): { away: string; home: string } {
   return m ? { away: m[1].toUpperCase(), home: m[2].toUpperCase() } : { away: "", home: "" };
 }
 
-/** Today's date (YYYY-MM-DD) in Taipei. */
-function tpeToday(now: Date): string {
-  const t = new Date(now.getTime() + 8 * 3600 * 1000);
-  const y = t.getUTCFullYear();
-  const m = String(t.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(t.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 /** The slug's game date, e.g. "mlb-stl-min-2026-06-13" → "2026-06-13". */
 function slugDate(gameKey: string): string {
   return gameKey.slice(-10);
 }
 
 /**
- * The "next slate": all MLB games on the SOONEST game-date that is today or
- * later (by slug date, Taipei). The three daily report runs (00:10 / 08:30 /
- * 17:00 Taipei) all land on the same slate this way — they're snapshots of the
- * same upcoming games at different times, not different days. Picking by
- * "earliest date >= today" is robust to schedule delay and to crossing midnight.
+ * The US slate date we report on = TAIPEI date − 1 day. US MLB games are
+ * played on the US calendar date, which (for evening games) is the day before
+ * Taipei: when it's 6/14 in Taipei, the games we watch are the US 6/13 slate
+ * (already played / about to play, where the smart money's bets sit).
+ */
+function usSlateDate(now: Date): string {
+  const tpe = new Date(now.getTime() + 8 * 3600 * 1000);
+  const us = new Date(Date.UTC(tpe.getUTCFullYear(), tpe.getUTCMonth(), tpe.getUTCDate() - 1));
+  const y = us.getUTCFullYear();
+  const m = String(us.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(us.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * All MLB games on the US slate for "today" in Taipei (= Taipei date − 1).
+ * The three daily runs (00:10 / 08:30 / 17:00 Taipei) all land on the same
+ * slate, snapshotting the same games at different times.
  */
 export async function getTodayMlbGames(now = new Date()): Promise<MlbGame[]> {
-  const today = tpeToday(now);
+  const slate = usSlateDate(now);
 
   let events: GammaEvent[] = [];
   try {
@@ -69,34 +73,32 @@ export async function getTodayMlbGames(now = new Date()): Promise<MlbGame[]> {
   }
   if (!Array.isArray(events)) return [];
 
-  // One row per game; remember each game's slug date.
-  const byKey = new Map<string, MlbGame & { date: string }>();
+  const byKey = new Map<string, MlbGame>();
   for (const e of events) {
     const slug = e.slug || e.markets?.[0]?.slug || "";
     const gameKey = gameKeyFromSlug(slug);
     if (!gameKey || byKey.has(gameKey)) continue;
-    const date = slugDate(gameKey);
-    if (date < today) continue; // skip games already in the past
+    if (slugDate(gameKey) !== slate) continue; // only the US slate for today (TPE−1)
 
     const { away, home } = teamsFromSlug(gameKey);
     if (!away || !home) continue;
 
-    byKey.set(gameKey, { gameKey, away, home, title: e.title || `${away} vs ${home}`, date });
+    byKey.set(gameKey, { gameKey, away, home, title: e.title || `${away} vs ${home}` });
   }
 
-  const all = [...byKey.values()];
-  if (all.length === 0) return [];
-
-  // Earliest upcoming game-date = the slate we report on.
-  const slate = all.reduce((min, g) => (g.date < min ? g.date : min), all[0].date);
-  return all
-    .filter((g) => g.date === slate)
-    .sort((a, b) => a.gameKey.localeCompare(b.gameKey))
-    .map(({ gameKey, away, home, title }) => ({ gameKey, away, home, title }));
+  return [...byKey.values()].sort((a, b) => a.gameKey.localeCompare(b.gameKey));
 }
 
 /** "6/13" — the Taipei date label for the report header. */
 export function tpeDateLabel(now = new Date()): string {
   const t = new Date(now.getTime() + 8 * 3600 * 1000);
   return `${t.getUTCMonth() + 1}/${t.getUTCDate()}`;
+}
+
+/** "6/13" from a game's slug date (US slate date) — for the report header. */
+export function slateDateLabel(games: MlbGame[]): string {
+  const d = games[0]?.gameKey.slice(-10); // "2026-06-13"
+  if (!d) return "";
+  const [, m, day] = d.split("-");
+  return `${Number(m)}/${Number(day)}`;
 }

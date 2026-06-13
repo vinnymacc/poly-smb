@@ -101,11 +101,10 @@ function formatPosition(p: Position): string {
   return `${action} <b>${escapeHtml(target)}</b> ${point}¢ · ${compactUsd(p.usd)}${fills}`;
 }
 
-export async function sendTelegram(text: string): Promise<void> {
-  if (!TOKEN || !CHAT_ID) {
-    console.warn("⚠ TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set — printing instead:\n" + text);
-    return;
-  }
+// Telegram hard limit is 4096 chars; stay safely under it.
+const TG_LIMIT = 3800;
+
+async function sendOne(text: string): Promise<void> {
   const res = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -120,4 +119,30 @@ export async function sendTelegram(text: string): Promise<void> {
     const body = await res.text();
     throw new Error(`Telegram sendMessage failed ${res.status}: ${body.slice(0, 200)}`);
   }
+}
+
+/**
+ * Send a message, auto-splitting on line boundaries if it exceeds Telegram's
+ * length limit (so a long digest goes out as several messages instead of 400).
+ */
+export async function sendTelegram(text: string): Promise<void> {
+  if (!TOKEN || !CHAT_ID) {
+    console.warn("⚠ TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set — printing instead:\n" + text);
+    return;
+  }
+  if (text.length <= TG_LIMIT) {
+    await sendOne(text);
+    return;
+  }
+  // split into chunks on line boundaries
+  const lines = text.split("\n");
+  let chunk = "";
+  for (const line of lines) {
+    if (chunk.length + line.length + 1 > TG_LIMIT && chunk) {
+      await sendOne(chunk);
+      chunk = "";
+    }
+    chunk = chunk ? `${chunk}\n${line}` : line;
+  }
+  if (chunk) await sendOne(chunk);
 }

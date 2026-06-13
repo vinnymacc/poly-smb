@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 import { getPositions } from "./polymarket.js";
-import { getTodayMlbGames, gameKeyFromSlug, tpeDateLabel } from "./mlb-schedule.js";
+import { getTodayMlbGames, gameKeyFromSlug, slateDateLabel } from "./mlb-schedule.js";
 import { sendTelegram } from "./telegram.js";
 import type { Watched } from "./types.js";
 
@@ -56,6 +56,10 @@ function escapeHtml(s: string): string {
 // One wallet's moneyline pick on a game.
 type Pick = { label: string; outcome: string; usd: number };
 
+// Only report bets at/above this size — keeps the digest focused on real money
+// and the message under Telegram's 4096-char limit as the watchlist grows.
+const MIN_USD = 3000;
+
 async function main() {
   const watchlist = loadMlbWatchlist();
   const games = await getTodayMlbGames();
@@ -79,6 +83,7 @@ async function main() {
     }
     for (const p of positions) {
       if (p.redeemable || p.currentValue <= 0) continue; // active only
+      if (p.currentValue < MIN_USD) continue; // skip small bets (keeps msg short)
       const key = gameKeyFromSlug(p.slug);
       if (!key || !validKeys.has(key)) continue; // one of today's games
       if (!isMoneyline(p.slug, p.outcome)) continue; // 勝負盤 only (skip O/U, spread)
@@ -96,18 +101,22 @@ async function main() {
   }
 
   // build message — list ALL of today's games; games with no bets show "尚無"
-  const lines: string[] = [`⚾ <b>今日 MLB</b> · ${tpeDateLabel()} · ${games.length} 場`];
+  const lines: string[] = [`⚾ <b>今日 MLB</b> · ${slateDateLabel(games)} · ${games.length} 場`];
   lines.push("━━━━━━━━━━━━━");
+  const PER_GAME_CAP = 10; // list only the biggest 10 bettors per game
   for (const g of games) {
     lines.push(`<b>${g.away} vs ${g.home}</b>`);
-    const picks = picksByGame.get(g.gameKey) ?? [];
+    const picks = (picksByGame.get(g.gameKey) ?? []).sort((a, b) => b.usd - a.usd);
     if (picks.length === 0) {
       lines.push("  尚無聰明錢進場");
     } else {
-      for (const pk of picks) {
+      for (const pk of picks.slice(0, PER_GAME_CAP)) {
         lines.push(
           `  ${escapeHtml(pk.label)}  押 <b>${escapeHtml(pk.outcome)}</b>  ${compactUsd(pk.usd)}`,
         );
+      }
+      if (picks.length > PER_GAME_CAP) {
+        lines.push(`  <i>…還有 ${picks.length - PER_GAME_CAP} 人</i>`);
       }
     }
   }
