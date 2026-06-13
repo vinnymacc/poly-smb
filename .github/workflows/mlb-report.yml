@@ -1,11 +1,12 @@
 name: MLB Daily Report
 
-# Sends the daily MLB pre-game report to Telegram, twice a day, WITHOUT needing
-# the home PC on. Runs on GitHub's servers.
+# Sends the daily MLB pre-game report to Telegram, three times a day, WITHOUT
+# needing the home PC on. Runs on GitHub's servers.
 #
 # Times are Taipei (UTC+8); cron here is UTC:
 #   Taipei 00:10 = UTC 16:10 (previous day)
 #   Taipei 08:30 = UTC 00:30
+#   Taipei 17:00 = UTC 09:00
 # Note: GitHub-scheduled crons can be delayed 5-15 min (GitHub does not
 # guarantee on-time execution). Good enough for a pre-game digest.
 
@@ -13,6 +14,7 @@ on:
   schedule:
     - cron: "10 16 * * *"   # 00:10 Taipei
     - cron: "30 0 * * *"    # 08:30 Taipei
+    - cron: "0 9 * * *"     # 17:00 Taipei
   workflow_dispatch: {}      # allow manual "Run workflow" button / gh run
 
 jobs:
