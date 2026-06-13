@@ -38,6 +38,7 @@ export type Bet = {
   sport: Sport;
   category: Category;
   market: string;
+  slug: string; // market slug — drives the human-readable bet description
   outcome: string;
   side: "BUY" | "SELL";
   price: number;

@@ -3,6 +3,7 @@
 // we use plain fetch here. If it ever gets blocked too, swap to getJson().
 
 import type { Bet } from "./types.js";
+import { describeBet } from "./sports.js";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -10,6 +11,7 @@ const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 // One merged position: all of an account's fresh trades on the same market +
 // outcome + side, collapsed into a single row (weighted avg price, total USD).
 type Position = {
+  slug: string; // market slug — drives the readable description
   outcome: string;
   side: "BUY" | "SELL";
   count: number;
@@ -26,6 +28,7 @@ function mergePositions(bets: Bet[]): Position[] {
     let p = byKey.get(key);
     if (!p) {
       p = {
+        slug: b.slug,
         outcome: b.outcome,
         side: b.side,
         count: 0,
@@ -94,7 +97,8 @@ function formatPosition(p: Position): string {
   const point = (avgPrice * 100).toFixed(0);
   const action = p.side === "BUY" ? "押" : "出";
   const fills = p.count > 1 ? ` ×${p.count}` : "";
-  return `${action} <b>${escapeHtml(p.outcome)}</b> ${point}¢ · ${compactUsd(p.usd)}${fills}`;
+  const target = describeBet(p.slug, p.outcome); // 隊名 / 大小分 8.5 Under / 讓分 主-1.5 隊名
+  return `${action} <b>${escapeHtml(target)}</b> ${point}¢ · ${compactUsd(p.usd)}${fills}`;
 }
 
 export async function sendTelegram(text: string): Promise<void> {

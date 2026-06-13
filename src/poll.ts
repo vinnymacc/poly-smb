@@ -36,6 +36,7 @@ async function toBet(a: RawActivity, label: string): Promise<Bet> {
     sport,
     category,
     market: a.title,
+    slug: a.slug,
     outcome: a.outcome,
     side: a.side,
     price: a.price,

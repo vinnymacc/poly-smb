@@ -39,13 +39,12 @@ const MLB_GAME_SLUG = /^mlb-[a-z]+-[a-z]+-\d{4}-\d{2}-\d{2}/i;
 // fixture with a date, while the futures regex above strips "win the world cup".
 const WC_GAME_SLUG = /^(worldcup|world-cup|fifa|wc)-[a-z]+-[a-z]+-\d{4}-\d{2}-\d{2}/i;
 
-// Turn a market slug + outcome into a human-readable bet description, so a
-// notification never shows a bare "Under" with no context. MLB markets come in
-// three shapes (verified against live positions):
-//   bare              "mlb-atl-cws-2026-06-11"            → moneyline (outcome = team)
-//   -total-9pt5       "...-total-9pt5"        outcome O/U → 大小分 9.5 Over/Under
-//   -spread-home-1pt5 "...-spread-home-1pt5"  outcome=team→ 讓分 主-1.5 押 <team>
-// Returns "押 <團隊>" for moneyline, or a labelled description otherwise.
+// Turn a market slug + outcome into a human-readable bet TARGET (no verb — the
+// caller adds 押/出), so a notification never shows a bare "Under" with no
+// context. MLB markets come in three shapes (verified against live positions):
+//   bare              "mlb-atl-cws-2026-06-11"             → moneyline → team name
+//   -total-9pt5       "...-total-9pt5"        outcome O/U  → 大小分 9.5 Over/Under
+//   -spread-home-1pt5 "...-spread-home-1pt5"  outcome=team → 讓分 主-1.5 <team>
 export function describeBet(slug = "", outcome = ""): string {
   const o = outcome.trim();
   // points line like "9pt5" → "9.5"
@@ -59,10 +58,10 @@ export function describeBet(slug = "", outcome = ""): string {
   if (/-spread-(home|away)-/i.test(slug)) {
     // 讓分: home/away ± line, outcome is the team taken
     const side = /-spread-home-/i.test(slug) ? "主" : "客";
-    return `讓分 ${side}-${line} 押 ${o}`;
+    return `讓分 ${side}-${line} ${o}`;
   }
   // moneyline (or anything else) — outcome is the team
-  return `押 ${o}`;
+  return o;
 }
 
 /**
