@@ -18,6 +18,10 @@
     { "address": "0x2dc8cfeb44ec8edb97113d4ff400f5ae3c8647d0", "label": "🦛河馬", "tags": ["MLB"] },
     { "address": "0x3b21433b0407e45d683cad1fcb6ba0a6b33ba230", "label": "🦥樹懶", "tags": ["MLB"] },
     { "address": "0xa8e089ade142c95538e06196e09c85681112ad50", "label": "🐫駱駝", "tags": ["MLB"] },
-    { "address": "0xfc25f141ed27bb1787338d2c4e7f51e3a15e1f7f", "label": "🐚鮑魚", "tags": ["MLB"] }
+    { "address": "0xfc25f141ed27bb1787338d2c4e7f51e3a15e1f7f", "label": "🐚鮑魚", "tags": ["MLB"] },
+    { "address": "0xd81e5bc01e4a98d0af93d82dc2c542a4c0f9e3d0", "label": "🐯老虎", "tags": ["MLB"] },
+    { "address": "0x2005d16a84ceefa912d4e380cd32e7ff827875ea", "label": "🐺野狼", "tags": ["MLB"] },
+    { "address": "0x0eb540b0e83803cf2b00b02eb2ec3a6a88dfd57a", "label": "🦏犀牛", "tags": ["MLB"] },
+    { "address": "0xe8c4d68aff65b38cac46987b9b65e01eb47d395d", "label": "🐬海豚", "tags": ["MLB"] }
   ]
 }
