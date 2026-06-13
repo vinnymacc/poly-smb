@@ -100,23 +100,41 @@ async function main() {
     return;
   }
 
-  // build message — list ALL of today's games; games with no bets show "尚無"
+  // build message — list ALL of today's games; games with no bets show "尚無".
+  // Within a game, GROUP picks by the team they backed, so you see at a glance
+  // how the money splits between the two sides.
   const lines: string[] = [`⚾ <b>今日 MLB</b> · ${slateDateLabel(games)} · ${games.length} 場`];
   lines.push("━━━━━━━━━━━━━");
-  const PER_GAME_CAP = 10; // list only the biggest 10 bettors per game
+  const PER_TEAM_CAP = 8; // names listed per team side before folding
   for (const g of games) {
     lines.push(`<b>${g.away} vs ${g.home}</b>`);
-    const picks = (picksByGame.get(g.gameKey) ?? []).sort((a, b) => b.usd - a.usd);
+    const picks = picksByGame.get(g.gameKey) ?? [];
     if (picks.length === 0) {
       lines.push("  尚無聰明錢進場");
-    } else {
-      for (const pk of picks.slice(0, PER_GAME_CAP)) {
-        lines.push(
-          `  ${escapeHtml(pk.label)}  押 <b>${escapeHtml(pk.outcome)}</b>  ${compactUsd(pk.usd)}`,
-        );
-      }
-      if (picks.length > PER_GAME_CAP) {
-        lines.push(`  <i>…還有 ${picks.length - PER_GAME_CAP} 人</i>`);
+      continue;
+    }
+    // group by backed team (outcome)
+    const byTeam = new Map<string, Pick[]>();
+    for (const p of picks) (byTeam.get(p.outcome) ?? byTeam.set(p.outcome, []).get(p.outcome)!).push(p);
+
+    // team groups ordered by total money on that side (heavier side first)
+    const groups = [...byTeam.entries()]
+      .map(([team, ps]) => ({
+        team,
+        ps: ps.sort((a, b) => b.usd - a.usd),
+        total: ps.reduce((n, p) => n + p.usd, 0),
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    for (const grp of groups) {
+      lines.push(
+        `  ▸ <b>${escapeHtml(grp.team)}</b> (${grp.ps.length}人 ${compactUsd(grp.total)})`,
+      );
+      const shown = grp.ps.slice(0, PER_TEAM_CAP);
+      const names = shown.map((p) => `${escapeHtml(p.label)} ${compactUsd(p.usd)}`).join(" · ");
+      lines.push(`     ${names}`);
+      if (grp.ps.length > PER_TEAM_CAP) {
+        lines.push(`     <i>…還有 ${grp.ps.length - PER_TEAM_CAP} 人</i>`);
       }
     }
   }
