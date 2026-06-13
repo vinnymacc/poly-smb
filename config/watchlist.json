@@ -1,0 +1,23 @@
+{
+  "addresses": [
+    { "address": "0xb91aeb5accc33a5f9a8615b8ed6b2d352e913987", "label": "🐳鯨魚-高勝率", "tags": ["MLB"] },
+    { "address": "0x2c335066fe58fe9237c3d3dc7b275c2a034a0563", "label": "🐟飛魚", "tags": ["MLB"] },
+    { "address": "0x32ed517a571c01b6e9adecf61ba81ca48ff2f960", "label": "🦒麒麟", "tags": ["MLB"] },
+    { "address": "0x5268527977f700f9bf9b6d5cd843859e4e70135d", "label": "🐘大象", "tags": ["MLB"] },
+    { "address": "0x204f72f35326db932158cba6adff0b9a1da95e14", "label": "🦁棕獅", "tags": ["MLB","WC"] },
+    { "address": "0x2a2c53bd278c04da9962fcf96490e17f3dfb9bc1", "label": "🐶賭狗", "tags": ["WC"] },
+    { "address": "0x7ea571c40408f340c1c8fc8eaacebab53c1bde7b", "label": "🦦水獺", "tags": ["WC"] },
+    { "address": "0x1b47e9b128e6b671edebfb2cac23dd3efc40d814", "label": "🐹倉鼠", "tags": ["WC"] },
+    { "address": "0xbddf61af533ff524d27154e589d2d7a81510c684", "label": "🦅獵隼", "tags": ["MLB","WC"] },
+    { "address": "0xee00ba338c59557141789b127927a55f5cc5cea1", "label": "🦨爆菊", "tags": ["WC"] },
+    { "address": "0x5c3a1a602848565bb16165fcd460b00c3d43020b", "label": "🦭海獅", "tags": ["WC"] },
+    { "address": "0xbca08c1bc204a34f2fddbe47b438b9bd42ac9705", "label": "🦊狐狸", "tags": ["MLB"] },
+    { "address": "0x4f16904f3dfbeec492fe6850980c3c97cd1d553d", "label": "🦁獅子", "tags": ["MLB"] },
+    { "address": "0x5966db1fe50763c9e3c014d756369bad07e1f804", "label": "🐼貓熊", "tags": ["MLB"] },
+    { "address": "0x3dfb153c197d4c19d3b31c1ecd2c7b6860eeabaf", "label": "🐤小雞", "tags": ["MLB"] },
+    { "address": "0x2dc8cfeb44ec8edb97113d4ff400f5ae3c8647d0", "label": "🦛河馬", "tags": ["MLB"] },
+    { "address": "0x3b21433b0407e45d683cad1fcb6ba0a6b33ba230", "label": "🦥樹懶", "tags": ["MLB"] },
+    { "address": "0xa8e089ade142c95538e06196e09c85681112ad50", "label": "🐫駱駝", "tags": ["MLB"] },
+    { "address": "0xfc25f141ed27bb1787338d2c4e7f51e3a15e1f7f", "label": "🐚鮑魚", "tags": ["MLB"] }
+  ]
+}
