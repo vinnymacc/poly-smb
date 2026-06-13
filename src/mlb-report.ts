@@ -101,11 +101,11 @@ async function main() {
   }
 
   // build message — list ALL of today's games; games with no bets show "尚無".
-  // Within a game, GROUP picks by the team they backed, so you see at a glance
-  // how the money splits between the two sides.
+  // Within a game: one line per bettor, sorted so same-team picks sit together
+  // (heavier side first) and within a team by amount desc.
   const lines: string[] = [`⚾ <b>今日 MLB</b> · ${slateDateLabel(games)} · ${games.length} 場`];
   lines.push("━━━━━━━━━━━━━");
-  const PER_TEAM_CAP = 8; // names listed per team side before folding
+  const PER_GAME_CAP = 12; // max lines per game before folding
   for (const g of games) {
     lines.push(`<b>${g.away} vs ${g.home}</b>`);
     const picks = picksByGame.get(g.gameKey) ?? [];
@@ -113,29 +113,24 @@ async function main() {
       lines.push("  尚無聰明錢進場");
       continue;
     }
-    // group by backed team (outcome)
-    const byTeam = new Map<string, Pick[]>();
-    for (const p of picks) (byTeam.get(p.outcome) ?? byTeam.set(p.outcome, []).get(p.outcome)!).push(p);
-
-    // team groups ordered by total money on that side (heavier side first)
-    const groups = [...byTeam.entries()]
-      .map(([team, ps]) => ({
-        team,
-        ps: ps.sort((a, b) => b.usd - a.usd),
-        total: ps.reduce((n, p) => n + p.usd, 0),
-      }))
-      .sort((a, b) => b.total - a.total);
-
-    for (const grp of groups) {
+    // total money per team, to order teams (heavier side first)
+    const teamTotal = new Map<string, number>();
+    for (const p of picks) teamTotal.set(p.outcome, (teamTotal.get(p.outcome) ?? 0) + p.usd);
+    // sort: by team's total (desc), then within team by this bet's amount (desc)
+    const ordered = [...picks].sort((a, b) => {
+      const ta = teamTotal.get(a.outcome)!;
+      const tb = teamTotal.get(b.outcome)!;
+      if (tb !== ta) return tb - ta;
+      if (a.outcome !== b.outcome) return a.outcome.localeCompare(b.outcome);
+      return b.usd - a.usd;
+    });
+    for (const pk of ordered.slice(0, PER_GAME_CAP)) {
       lines.push(
-        `  ▸ <b>${escapeHtml(grp.team)}</b> (${grp.ps.length}人 ${compactUsd(grp.total)})`,
+        `  ${escapeHtml(pk.label)}  押 <b>${escapeHtml(pk.outcome)}</b>  ${compactUsd(pk.usd)}`,
       );
-      const shown = grp.ps.slice(0, PER_TEAM_CAP);
-      const names = shown.map((p) => `${escapeHtml(p.label)} ${compactUsd(p.usd)}`).join(" · ");
-      lines.push(`     ${names}`);
-      if (grp.ps.length > PER_TEAM_CAP) {
-        lines.push(`     <i>…還有 ${grp.ps.length - PER_TEAM_CAP} 人</i>`);
-      }
+    }
+    if (ordered.length > PER_GAME_CAP) {
+      lines.push(`  <i>…還有 ${ordered.length - PER_GAME_CAP} 人</i>`);
     }
   }
   const msg = lines.join("\n");
