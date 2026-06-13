@@ -35,23 +35,29 @@ function teamsFromSlug(slug: string): { away: string; home: string } {
   return m ? { away: m[1].toUpperCase(), home: m[2].toUpperCase() } : { away: "", home: "" };
 }
 
-/** The US calendar date (YYYY-MM-DD) for "today's" Taipei slate = Taipei date − 1 day. */
-function usSlateDate(now: Date): string {
-  // Taipei wall-clock date, then step back one day to the US date.
-  const tpe = new Date(now.getTime() + 8 * 3600 * 1000);
-  const usDay = new Date(Date.UTC(tpe.getUTCFullYear(), tpe.getUTCMonth(), tpe.getUTCDate() - 1));
-  const y = usDay.getUTCFullYear();
-  const m = String(usDay.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(usDay.getUTCDate()).padStart(2, "0");
+/** Today's date (YYYY-MM-DD) in Taipei. */
+function tpeToday(now: Date): string {
+  const t = new Date(now.getTime() + 8 * 3600 * 1000);
+  const y = t.getUTCFullYear();
+  const m = String(t.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(t.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
 
+/** The slug's game date, e.g. "mlb-stl-min-2026-06-13" → "2026-06-13". */
+function slugDate(gameKey: string): string {
+  return gameKey.slice(-10);
+}
+
 /**
- * All MLB games on today's Taipei slate (= US "yesterday"'s date). One row per
- * game, keyed by slug prefix. Selection is purely by the slug's date.
+ * The "next slate": all MLB games on the SOONEST game-date that is today or
+ * later (by slug date, Taipei). The three daily report runs (00:10 / 08:30 /
+ * 17:00 Taipei) all land on the same slate this way — they're snapshots of the
+ * same upcoming games at different times, not different days. Picking by
+ * "earliest date >= today" is robust to schedule delay and to crossing midnight.
  */
 export async function getTodayMlbGames(now = new Date()): Promise<MlbGame[]> {
-  const slateDate = usSlateDate(now); // e.g. "2026-06-12"
+  const today = tpeToday(now);
 
   let events: GammaEvent[] = [];
   try {
@@ -63,19 +69,30 @@ export async function getTodayMlbGames(now = new Date()): Promise<MlbGame[]> {
   }
   if (!Array.isArray(events)) return [];
 
-  const byKey = new Map<string, MlbGame>();
+  // One row per game; remember each game's slug date.
+  const byKey = new Map<string, MlbGame & { date: string }>();
   for (const e of events) {
     const slug = e.slug || e.markets?.[0]?.slug || "";
     const gameKey = gameKeyFromSlug(slug);
     if (!gameKey || byKey.has(gameKey)) continue;
-    if (!gameKey.endsWith(slateDate)) continue; // only today's US slate
+    const date = slugDate(gameKey);
+    if (date < today) continue; // skip games already in the past
 
     const { away, home } = teamsFromSlug(gameKey);
     if (!away || !home) continue;
 
-    byKey.set(gameKey, { gameKey, away, home, title: e.title || `${away} vs ${home}` });
+    byKey.set(gameKey, { gameKey, away, home, title: e.title || `${away} vs ${home}`, date });
   }
-  return [...byKey.values()].sort((a, b) => a.gameKey.localeCompare(b.gameKey));
+
+  const all = [...byKey.values()];
+  if (all.length === 0) return [];
+
+  // Earliest upcoming game-date = the slate we report on.
+  const slate = all.reduce((min, g) => (g.date < min ? g.date : min), all[0].date);
+  return all
+    .filter((g) => g.date === slate)
+    .sort((a, b) => a.gameKey.localeCompare(b.gameKey))
+    .map(({ gameKey, away, home, title }) => ({ gameKey, away, home, title }));
 }
 
 /** "6/13" — the Taipei date label for the report header. */
